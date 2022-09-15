@@ -1,6 +1,7 @@
 import { StatusApiTesting } from '../../testing/StatusApiTesting'
 import { ApiPagedResponse, WhaleApiClient } from '@defichain/whale-api-client'
 import { Oracle, OraclePriceFeed } from '@defichain/whale-api-client/dist/api/oracles'
+import { PriceOracle, PriceTicker } from '@defichain/whale-api-client/dist/api/prices'
 
 const apiTesting = StatusApiTesting.create()
 
@@ -103,5 +104,77 @@ async function getMockedOracle (): Promise<Oracle> {
       currency: ''
     }],
     weightage: 0
+  }
+}
+
+describe('OracleStatusController - Oracle Active Status test', () => {
+  it('/oracles/<token>-<currency> - should get operational if more than ', async () => {
+    jest.spyOn(apiTesting.app.get(WhaleApiClient).prices, 'getOracles')
+      .mockReturnValueOnce(getMockedPriceOracle(3))
+
+    jest.spyOn(apiTesting.app.get(WhaleApiClient).prices, 'get')
+      .mockReturnValueOnce(getMockedPriceTicker(3))
+
+    const res = await apiTesting.app.inject({
+      method: 'GET',
+      url: 'oracles/DFI/DUSD'
+    })
+    expect(res.json()).toStrictEqual({
+      status: 'operational'
+    })
+    expect(res.statusCode).toStrictEqual(200)
+  })
+})
+
+async function getMockedPriceOracle (numberOfOracles: number): Promise<ApiPagedResponse<PriceOracle>> {
+  const data = []
+
+  while (numberOfOracles-- > 0) {
+    data.push({
+      feed: undefined,
+      key: '',
+      oracleId: '',
+      token: '',
+      id: '',
+      block: {
+        hash: '',
+        height: 0,
+        medianTime: 0,
+        time: 0
+      },
+      currency: '',
+      weightage: 0
+    })
+  }
+  return new ApiPagedResponse({
+    data: data
+  }, 'GET', 'getOracles')
+}
+
+async function getMockedPriceTicker (active: number): Promise<PriceTicker> {
+  return {
+    id: '',
+    price: {
+      id: '',
+      key: '',
+      sort: '',
+      token: '',
+      currency: '',
+      aggregated: {
+        amount: '',
+        weightage: 0,
+        oracles: {
+          active: active,
+          total: 0
+        }
+      },
+      block: {
+        hash: '',
+        height: 0,
+        time: 0,
+        medianTime: 0
+      }
+    },
+    sort: ''
   }
 }
